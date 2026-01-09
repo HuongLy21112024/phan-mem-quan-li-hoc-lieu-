@@ -1,0 +1,187 @@
+services:
+  config-server-1:
+    image: mongo:7.0
+    container_name: config-server-1
+    command: mongod --configsvr --replSet configReplSet --port 27017 --bind_ip_all
+    volumes:
+      - config1-data:/data/db
+    networks:
+      - smartlearn-network
+    ports:
+      - "27101:27017"
+  config-server-2:
+    image: mongo:7.0
+    container_name: config-server-2
+    command: mongod --configsvr --replSet configReplSet --port 27017 --bind_ip_all
+    volumes:
+      - config2-data:/data/db
+    networks:
+      - smartlearn-network
+    ports:
+      - "27102:27017"
+  config-server-3:
+    image: mongo:7.0
+    container_name: config-server-3
+    command: mongod --configsvr --replSet configReplSet --port 27017 --bind_ip_all
+    volumes:
+      - config3-data:/data/db
+    networks:
+      - smartlearn-network
+    ports:
+      - "27103:27017"
+  shard1-primary:
+    image: mongo:7.0
+    container_name: shard1-primary
+    command: mongod --shardsvr --replSet rs-hanoi --port 27017 --bind_ip_all
+    volumes:
+      - shard1-primary-data:/data/db
+    networks:
+      - smartlearn-network
+    ports:
+      - "27201:27017"
+  shard1-secondary:
+    image: mongo:7.0
+    container_name: shard1-secondary
+    command: mongod --shardsvr --replSet rs-hanoi --port 27017 --bind_ip_all
+    volumes:
+      - shard1-secondary-data:/data/db
+    networks:
+      - smartlearn-network
+    ports:
+      - "27202:27017"
+  shard1-arbiter:
+    image: mongo:7.0
+    container_name: shard1-arbiter
+    command: mongod --shardsvr --replSet rs-hanoi --port 27017 --bind_ip_all
+    volumes:
+      - shard1-arbiter-data:/data/db
+    networks:
+      - smartlearn-network
+    ports:
+      - "27203:27017"
+  shard2-primary:
+    image: mongo:7.0
+    container_name: shard2-primary
+    command: mongod --shardsvr --replSet rs-danang --port 27017 --bind_ip_all
+    volumes:
+      - shard2-primary-data:/data/db
+    networks:
+      - smartlearn-network
+    ports:
+      - "27301:27017"
+  shard2-secondary:
+    image: mongo:7.0
+    container_name: shard2-secondary
+    command: mongod --shardsvr --replSet rs-danang --port 27017 --bind_ip_all
+    volumes:
+      - shard2-secondary-data:/data/db
+    networks:
+      - smartlearn-network
+    ports:
+      - "27302:27017"
+  shard2-arbiter:
+    image: mongo:7.0
+    container_name: shard2-arbiter
+    command: mongod --shardsvr --replSet rs-danang --port 27017 --bind_ip_all
+    volumes:
+      - shard2-arbiter-data:/data/db
+    networks:
+      - smartlearn-network
+    ports:
+      - "27303:27017"
+  shard3-primary:
+    image: mongo:7.0
+    container_name: shard3-primary
+    command: mongod --shardsvr --replSet rs-hcm --port 27017 --bind_ip_all
+    volumes:
+      - shard3-primary-data:/data/db
+    networks:
+      - smartlearn-network
+    ports:
+      - "27401:27017"
+  shard3-secondary:
+    image: mongo:7.0
+    container_name: shard3-secondary
+    command: mongod --shardsvr --replSet rs-hcm --port 27017 --bind_ip_all
+    volumes:
+      - shard3-secondary-data:/data/db
+    networks:
+      - smartlearn-network
+    ports:
+      - "27402:27017"
+  shard3-arbiter:
+    image: mongo:7.0
+    container_name: shard3-arbiter
+    command: mongod --shardsvr --replSet rs-hcm --port 27017 --bind_ip_all
+    volumes:
+      - shard3-arbiter-data:/data/db
+    networks:
+      - smartlearn-network
+    ports:
+      - "27403:27017"
+  mongos-router:
+    image: mongo:7.0
+    container_name: mongos-router
+    command: mongos --configdb configReplSet/config-server-1:27017,config-server-2:27017,config-server-3:27017 --bind_ip_all --port 27017
+    depends_on:
+      - config-server-1
+      - config-server-2
+      - config-server-3
+      - shard1-primary
+      - shard2-primary
+      - shard3-primary
+    networks:
+      - smartlearn-network
+    ports:
+      - "27017:27017"
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: smartlearn-api
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - MONGODB_URI=mongodb://mongos-router:27017/smartlearn
+      - JWT_SECRET=smartlearn-super-secret-key-change-in-production
+      - JWT_ACCESS_EXPIRY=15m
+      - JWT_REFRESH_EXPIRY=7d
+      - NODE_ENV=production
+      - PORT=3001
+      - CORS_ORIGIN=http://localhost,http://localhost:80
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      - mongos-router
+    networks:
+      - smartlearn-network
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx.Dockerfile
+    container_name: smartlearn-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    networks:
+      - smartlearn-network
+volumes:
+  config1-data:
+  config2-data:
+  config3-data:
+  shard1-primary-data:
+  shard1-secondary-data:
+  shard1-arbiter-data:
+  shard2-primary-data:
+  shard2-secondary-data:
+  shard2-arbiter-data:
+  shard3-primary-data:
+  shard3-secondary-data:
+  shard3-arbiter-data:
+  uploads_data:
+networks:
+  smartlearn-network:
+    driver: bridge

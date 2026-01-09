@@ -1,0 +1,44 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Source files (not needed in production)
+**/src
+**/*.ts
+**/*.tsx
+**/tsconfig.json
+
+# Build tools
+.turbo
+
+# Environment files (except example)
+.env
+.env.local
+.env.*.local
+!.env.example
+!.env.production
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage
+
+# Uploads (will be mounted as volume)
+apps/api/uploads/*
+!apps/api/uploads/.gitkeep
+
+# Git
+.git
+.gitignore
